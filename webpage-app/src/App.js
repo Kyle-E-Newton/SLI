@@ -1,5 +1,6 @@
 import React from 'react';
-import Camera from './Camera'
+import Camera from './Camera';
+import Webcam from "react-webcam";
 
 function App() {
   return (
@@ -13,5 +14,7 @@ function App() {
     </>
     )
 }
+
+
 
 export default App;
