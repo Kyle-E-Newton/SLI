@@ -1,7 +1,10 @@
 from flask import Flask
+import Classifier
+from PIL import Image
 app = Flask(__name__)
 
 base_url = '/api/'
+Classifier = Classifier.Classifier
 
 @app.route('/')
 def hello_world():
@@ -11,11 +14,14 @@ def hello_world():
 def imageProcess():
     print(request.get_json(), file=sys.stderr)
     new_class = (**request.get_json())
-    ret_data = classify(new_class.image)
+    image = Image.open(new_class.image)
+    image = np.asarray(list(image.getdata()))
+    ret_data = classify(image)
     return jsonify_return_data(ret_data)
 
 def classify(image):
-    pass
+    prediction = Classifier.classify(image)
+    return prediction
 
 def jsonify_return_data(row):
     myrow = {

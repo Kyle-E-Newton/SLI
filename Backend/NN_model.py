@@ -21,7 +21,7 @@ def make_feature_extractor():
 def make_model():
     model = K.models.Sequential()
     model.add(K.layers.Dense(256, activation='relu', input_shape=(1280,)))
-    model.add(K.layers.Dense(29, activation='softmax'))
+    model.add(K.layers.Dense(28, activation='softmax'))
     model.compile(optimizer='rmsprop', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
     model.summary()
     return model
@@ -41,7 +41,7 @@ def extract_features(directory, sample_count):
         class_mode='sparse')
     i = 0
     for inputs_batch, labels_batch in generator:
-        print('progress:', round(i/(87000.0/batch_size), 2))
+        print('progress:', round(i/(84000.0/batch_size), 2))
         features_batch = conv_base.predict(inputs_batch)
         features[i * batch_size : (i + 1) * batch_size] = features_batch
         labels[i * batch_size : (i + 1) * batch_size] = labels_batch
@@ -50,14 +50,14 @@ def extract_features(directory, sample_count):
             break
     return features, labels
 
-data_features, data_labels = extract_features(train_dir, 87000)
-data_features = np.reshape(data_features, (87000, 1280))
+data_features, data_labels = extract_features(train_dir, 84000)
+data_features = np.reshape(data_features, (84000, 1280))
 
-x_train, x_test, y_train, y_test = train_test_split(data_features, data_labels, test_size=0.2, random_state=42)
+x_train, x_test, y_train, y_test = train_test_split(data_features, data_labels, test_size=0.01, random_state=42)
 
 if __name__ == "__main__":
     model = make_model()
-    model.fit(x_train, y_train, epochs=5, batch_size=64, shuffle=True)
+    model.fit(x_train, y_train, epochs=3, batch_size=128, shuffle=True)
     print('Evaluation:')
     model.evaluate(x_test, y_test)
     model.save('SLI_Model.h5')
