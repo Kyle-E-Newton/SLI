@@ -27,7 +27,7 @@ def make_model():
     return model
 
 # create data generator
-datagen = ImageDataGenerator(rescale=1./255, rotation_range=40, width_shift_range=0.2, height_shift_range=0.2, shear_range=0.2, zoom_range=0.2, horizontal_flip=True)
+datagen = ImageDataGenerator(rescale=1./255, rotation_range=40, width_shift_range=0.2, height_shift_range=0.2, shear_range=0.2, zoom_range=0.2, brightness_range=(0.5, 1.5), horizontal_flip=True)
 conv_base = make_feature_extractor()
 
 # returns the output of the last layer of the MobileNetV2 convolutional neural network
@@ -53,11 +53,11 @@ def extract_features(directory, sample_count):
 data_features, data_labels = extract_features(train_dir, 84000)
 data_features = np.reshape(data_features, (84000, 1280))
 
-x_train, x_test, y_train, y_test = train_test_split(data_features, data_labels, test_size=0.01, random_state=42)
+x_train, x_test, y_train, y_test = train_test_split(data_features, data_labels, test_size=0.1, random_state=42)
 
 if __name__ == "__main__":
     model = make_model()
-    model.fit(x_train, y_train, epochs=3, batch_size=128, shuffle=True)
+    model.fit(x_train, y_train, epochs=2, batch_size=128, shuffle=True)
     print('Evaluation:')
     model.evaluate(x_test, y_test)
     model.save('SLI_Model.h5')
