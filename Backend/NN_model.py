@@ -60,4 +60,4 @@ if __name__ == "__main__":
     model.fit(x_train, y_train, epochs=2, batch_size=128, shuffle=True)
     print('Evaluation:')
     model.evaluate(x_test, y_test)
-    model.save('SLI_Model.h5')
+    model.save('SLI_Model2.h5')
