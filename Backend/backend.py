@@ -15,7 +15,7 @@ def hello_world():
 
 @app.route(base_url + 'image', methods=['POST'])
 def imageProcess():
-    file = request.files['file']
+    print(request.get_json())
     ret_data = classify(file)
     return jsonify_return_data(ret_data)
 

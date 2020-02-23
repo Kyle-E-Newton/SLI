@@ -1,7 +1,12 @@
-import React from 'react'
+import React from 'react';
 import Webcam from "react-webcam";
+import axios from 'axios';
+
+var url = "127.0.0.1:3000";
+var val = 0;
 
 export default class WebcamCapture extends React.Component {
+
     constructor(props) {
         super(props);
         this.state = {
@@ -22,6 +27,10 @@ export default class WebcamCapture extends React.Component {
 
     timer = setInterval((start) => {
         this.capture();
+        if (this.state.screenshot != null) {
+            val = makePostRequest(url + "/api/image", this.state.screenshot);
+            displayValue(this.val);
+        }
     }, 2000);
 
 
@@ -50,3 +59,19 @@ export default class WebcamCapture extends React.Component {
     }
 }
 
+async function makePostRequest(url, data) {
+    const response = await axios.post(
+        url,
+        {data}
+    );
+    return response;
+}
+
+var displayValue = function(data) {
+    //TODO: Show in text box
+    console.log(data);
+}
+
+var onFailure = function() {
+    console.error("Error in POST");
+}
