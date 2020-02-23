@@ -1,14 +1,13 @@
-from flask import Flask
+from flask import Flask, request
+from flask_cors import CORS
 import Classifier
 from PIL import Image
+
 app = Flask(__name__)
+CORS(app)
 
 base_url = '/api/'
 Classifier = Classifier.Classifier
-
-UPLOAD_FOLDER = 'uploads/'
-
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 @app.route('/')
 def hello_world():
