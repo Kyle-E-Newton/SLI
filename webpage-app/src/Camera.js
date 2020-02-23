@@ -1,6 +1,5 @@
 import React from 'react';
 import Webcam from "react-webcam";
-import axios from 'axios';
 
 var url = "http://127.0.0.1:5000";
 var val = 0;
@@ -63,8 +62,8 @@ export default class WebcamCapture extends React.Component {
                 screenshotFormat="image/jpeg"
                 videoConstraints={videoConstraints}
                 />
-            <button onClick={this.startOn}>Start</button>
-            <button onClick={this.startOff}>Stop</button>
+            <button  id = "startbutton" onClick={this.startOn}>Start</button>
+            <button id = "stopbutton"onClick={this.startOff}>Stop</button>
             {this.state.screenshot ? <img src ={this.state.screenshot} /> : null}
 
         </div>
