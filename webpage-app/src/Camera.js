@@ -12,7 +12,8 @@ export default class WebcamCapture extends React.Component {
         this.state = {
             screenshot: null,
             tab: 0,
-            start: true
+            start: false,
+            intervalId: null
         };
     }
     
@@ -25,15 +26,27 @@ export default class WebcamCapture extends React.Component {
         this.setState({ screenshot })
     };
 
-    timer = setInterval((start) => {
-        this.capture();
-        if (this.state.screenshot != null) {
-            val = makePostRequest(url + "/api/image", this.state.screenshot);
-            displayValue(this.val);
+    timer = () => {
+        if(this.start){
+            this.intervalId = setInterval(() => {
+                this.capture();
+                val = makePostRequest(url + "/api/image", this.state.screenshot);
+                displayValue(this.val);
+            }, 2000);
+        }else{
+            clearInterval(this.intervalId);
         }
-    }, 2000);
+    }
 
+    startOn = () => {
+        this.start = true;
+        this.timer();
+    }
 
+    startOff = () => {
+        this.start = false;
+        this.timer();
+    }
       
     render() {
     const videoConstraints = {
@@ -44,16 +57,16 @@ export default class WebcamCapture extends React.Component {
       
     return (
         <div>
-            <Webcam 
+            <Webcam id="cam"
                 audio={false}
-                height={350}
                 ref={this.setRef}
                 screenshotFormat="image/jpeg"
-                width={350}
                 videoConstraints={videoConstraints}
                 />
-            <button onClick={this.capture}>Capture photo</button>
+            <button onClick={this.startOn}>Start</button>
+            <button onClick={this.startOff}>Stop</button>
             {this.state.screenshot ? <img src ={this.state.screenshot} /> : null}
+
         </div>
         );
     }
