@@ -1,6 +1,5 @@
 import React, { useCallback } from 'react';
 import Webcam from "react-webcam";
-import axios from 'axios';
 
 var url = "http://127.0.0.1:5000";
 var val = 0;
@@ -13,7 +12,8 @@ export default class WebcamCapture extends React.Component {
             screenshot: null,
             tab: 0,
             start: false,
-            intervalId: null
+            intervalId: null,
+            textMessage: ""
         };
     }
     
@@ -30,8 +30,8 @@ export default class WebcamCapture extends React.Component {
         if(this.start){
             this.intervalId = setInterval(() => {
                 this.capture();
-                val = makePostRequest(url + "/api/image", this.state.screenshot, onSuccess);
-                console.log(val);
+                val = makePostRequest(url + "/api/image", this.state.screenshot, this.onSuccess);
+                //console.log(val);
                 //displayValue(this.val);
             }, 1000);
         }else{
@@ -47,6 +47,15 @@ export default class WebcamCapture extends React.Component {
     startOff = () => {
         this.start = false;
         this.timer();
+    }
+
+     onSuccess = (data) => {
+        var char = data[11];
+        console.log(data);
+        console.log(char);
+        this.setState({
+            textMessage: this.state.textMessage + char
+        });
     }
       
     render() {
@@ -64,21 +73,21 @@ export default class WebcamCapture extends React.Component {
                 screenshotFormat="image/jpeg"
                 videoConstraints={videoConstraints}
                 />
-            <button onClick={this.startOn}>Start</button>
-            <button onClick={this.startOff}>Stop</button>
+            <button  id = "startbutton" onClick={this.startOn}>Start</button>
+            <button id = "stopbutton"onClick={this.startOff}>Stop</button>
             {this.state.screenshot ? <img src ={this.state.screenshot} /> : null}
-
+            <textarea id = "resultarea" multiline={true} value={this.state.textMessage}></textarea>
         </div>
         );
     }
 }
 
- function makePostRequest(url, data, onSuccess) {
+ function makePostRequest(url, data, success) {
     var xhr = new XMLHttpRequest();
 
     xhr.onreadystatechange = function() {
         if(xhr.readyState == 4) {
-            onSuccess(xhr.response);
+            success(xhr.response);
         }
     }
     xhr.open('POST', url, false);
@@ -90,11 +99,15 @@ var displayValue = function(data) {
     //TODO: Show in text box
     console.log(data);
 }
-
+/*
 var onSuccess = function(data) {
-    console.log(data)
+    var char = data["letter"];
+    console.log(data);
+    this.setState({
+        textMessage: this.state.textMessage + char
+    });
 }
-
+*/
 var onFailure = function() {
     console.error("Error in POST");
 }
