@@ -6,17 +6,18 @@ app = Flask(__name__)
 base_url = '/api/'
 Classifier = Classifier.Classifier
 
+UPLOAD_FOLDER = 'uploads/'
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
 @app.route('/')
 def hello_world():
     return 'Hello World!'
 
 @app.route(base_url + 'image', methods=['POST'])
 def imageProcess():
-    print(request.get_json(), file=sys.stderr)
-    new_class = (**request.get_json())
-    image = Image.open(new_class.image)
-    image = np.asarray(list(image.getdata()))
-    ret_data = classify(image)
+    file = request.files['file']
+    ret_data = classify(file)
     return jsonify_return_data(ret_data)
 
 def classify(image):
@@ -25,8 +26,7 @@ def classify(image):
 
 def jsonify_return_data(row):
     myrow = {
-        "letter": row.letter,
-        "success": row.success
+        "letter": row.letter
     }
     return myrow
 
