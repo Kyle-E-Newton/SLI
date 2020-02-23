@@ -12,7 +12,8 @@ export default class WebcamCapture extends React.Component {
             screenshot: null,
             tab: 0,
             start: false,
-            intervalId: null
+            intervalId: null,
+            textMessage: "text message test"
         };
     }
     
@@ -66,7 +67,7 @@ export default class WebcamCapture extends React.Component {
             <button  id = "startbutton" onClick={this.startOn}>Start</button>
             <button id = "stopbutton"onClick={this.startOff}>Stop</button>
             {this.state.screenshot ? <img src ={this.state.screenshot} /> : null}
-            <textarea id = "resultarea" multiline={true}>exaple text</textarea>
+            <textarea id = "resultarea" multiline={true} value={this.state.textMessage}></textarea>
         </div>
         );
     }
@@ -87,7 +88,11 @@ export default class WebcamCapture extends React.Component {
 
 var displayValue = function(data) {
     //TODO: Show in text box
+    var char = data["letter"];
     console.log(data);
+    this.setState({
+        textMessage: this.state.textMessage + char
+    });
 }
 
 var onSuccess = function(data) {
