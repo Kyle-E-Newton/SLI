@@ -4,9 +4,10 @@ body {
 }
 
 #cam {
-    width: 50%;
-    height: 300px;
-    position: relative;
+    width: 45%;
+    height: 27%;
+    border: 2px solid black;
+    border-radius: 10px;
     margin-top: 0px;
     margin-left: 3%;
 }
@@ -51,6 +52,7 @@ body {
 
 #snap {
     border: 2px solid black;
+    border-radius: 10px;
     position: absolute;
     width: 25%;
     top: 150px;
