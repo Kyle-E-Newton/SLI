@@ -33,7 +33,7 @@ export default class WebcamCapture extends React.Component {
                 val = makePostRequest(url + "/api/image", this.state.screenshot, this.onSuccess);
                 //console.log(val);
                 //displayValue(this.val);
-            }, 2000);
+            }, 1000);
         }else{
             clearInterval(this.intervalId);
         }
