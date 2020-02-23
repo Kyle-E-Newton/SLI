@@ -1,29 +1,47 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from flask_cors import CORS
-import Classifier
+import tensorflow.keras as K
+from tensorflow.keras.applications.mobilenet_v2 import MobileNetV2
 from PIL import Image
+import numpy as np
+import base64
+import os
 
 app = Flask(__name__)
 CORS(app)
 
 base_url = '/api/'
-classifier = Classifier.Classifier
+model = K.models.load_model('SLI_Model.h5')
+
+path = 'asl-alphabet/'
+train_dir = path + 'train/'
+
+class_list = os.listdir(train_dir)
+print(class_list)
+
+def make_feature_extractor():
+    feature_extractor = MobileNetV2(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+    last_layer = K.layers.GlobalAveragePooling2D()(feature_extractor.output)
+    convolutional_base = K.models.Model(feature_extractor.input, last_layer)
+    return convolutional_base
+
+feature_extractor = make_feature_extractor()
 
 @app.route('/')
 def hello_world():
     return 'Hello World!'
 
-@app.route(base_url + 'image', methods=['POST'])
-def imageProcess():
-    print(request.get_json())
-    d = request.get_json()
-    file = base64.b64decode(d.data)
-    ret_data = classify(file)
-    return jsonify_return_data(ret_data)
 
-def classify(image):
-    prediction = classifier.classify(image)
-    return prediction
+@app.route(base_url + 'image', methods=['POST'])
+def classify():             # i cry ery time
+    d = request.get_json()
+    decodeTxt = base64.b64decode(d["data"].split(',', 1)[1])
+    with open('./img.jpg', 'wb') as f:
+        f.write(decodeTxt)
+    
+    retval = class_list[np.argmax(model.predict(feature_extractor.predict(np.expand_dims(np.asarray(Image.open("./img.jpg").resize((224,224))) / 255., axis=0))))] # absolute beauty #
+    return jsonify({"letter": str(retval), "status": 1})
+
 
 def jsonify_return_data(row):
     myrow = {
