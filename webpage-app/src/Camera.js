@@ -13,7 +13,7 @@ export default class WebcamCapture extends React.Component {
             tab: 0,
             start: false,
             intervalId: null,
-            textMessage: "text message test"
+            textMessage: ""
         };
     }
     
@@ -30,8 +30,8 @@ export default class WebcamCapture extends React.Component {
         if(this.start){
             this.intervalId = setInterval(() => {
                 this.capture();
-                val = makePostRequest(url + "/api/image", this.state.screenshot, onSuccess);
-                console.log(val);
+                val = makePostRequest(url + "/api/image", this.state.screenshot, this.onSuccess);
+                //console.log(val);
                 //displayValue(this.val);
             }, 2000);
         }else{
@@ -47,6 +47,15 @@ export default class WebcamCapture extends React.Component {
     startOff = () => {
         this.start = false;
         this.timer();
+    }
+
+     onSuccess = (data) => {
+        var char = data[11];
+        console.log(data);
+        console.log(char);
+        this.setState({
+            textMessage: this.state.textMessage + char
+        });
     }
       
     render() {
@@ -73,12 +82,12 @@ export default class WebcamCapture extends React.Component {
     }
 }
 
- function makePostRequest(url, data, onSuccess) {
+ function makePostRequest(url, data, success) {
     var xhr = new XMLHttpRequest();
 
     xhr.onreadystatechange = function() {
         if(xhr.readyState == 4) {
-            onSuccess(xhr.response);
+            success(xhr.response);
         }
     }
     xhr.open('POST', url, false);
@@ -88,17 +97,17 @@ export default class WebcamCapture extends React.Component {
 
 var displayValue = function(data) {
     //TODO: Show in text box
+    console.log(data);
+}
+/*
+var onSuccess = function(data) {
     var char = data["letter"];
     console.log(data);
     this.setState({
         textMessage: this.state.textMessage + char
     });
 }
-
-var onSuccess = function(data) {
-    console.log(data)
-}
-
+*/
 var onFailure = function() {
     console.error("Error in POST");
 }
