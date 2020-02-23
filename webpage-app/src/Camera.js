@@ -6,7 +6,8 @@ export default class WebcamCapture extends React.Component {
         super(props);
         this.state = {
             screenshot: null,
-            tab: 0
+            tab: 0,
+            start: true
         };
     }
     
@@ -18,6 +19,12 @@ export default class WebcamCapture extends React.Component {
         const screenshot = this.webcam.getScreenshot();
         this.setState({ screenshot })
     };
+
+    timer = setInterval((start) => {
+        this.capture();
+    }, 2000);
+
+
       
     render() {
     const videoConstraints = {
