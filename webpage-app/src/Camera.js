@@ -65,7 +65,7 @@ export default class WebcamCapture extends React.Component {
             <button  id = "startbutton" onClick={this.startOn}>Start</button>
             <button id = "stopbutton"onClick={this.startOff}>Stop</button>
             {this.state.screenshot ? <img src ={this.state.screenshot} /> : null}
-
+            <textarea id = "resultarea" multiline={true}>exaple text</textarea>
         </div>
         );
     }

@@ -19,7 +19,6 @@ body {
     color: white;
     font: 200;
     border: 2px solid black; 
-    border-radius: 10%;
     position: absolute;
     top: 80px;
     right: 20px;
@@ -33,8 +32,17 @@ body {
     color: white;
     font: 200;
     border: 2px solid black; 
-    border-radius: 10%;
     position: absolute;
     top: 180px;
+    right: 20px;
+}
+
+#resultarea {
+    width: 700px;
+    height: 300px;
+    background-color: blanchedalmond;
+    border: 2px solid crimson;
+    position: absolute;
+    top: 300px;
     right: 20px;
 }
