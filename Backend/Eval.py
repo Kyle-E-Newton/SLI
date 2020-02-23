@@ -27,7 +27,7 @@ def make_feature_extractor():
 
 
 conv_base = make_feature_extractor()
-model = K.models.load_model('SLI_Model2.h5')
+model = K.models.load_model('SLI_Model.h5')
 print(test_images.shape)
 conv_predictions = conv_base.predict(test_images)
 predictions = model.predict(conv_predictions)

@@ -7,7 +7,7 @@ app = Flask(__name__)
 CORS(app)
 
 base_url = '/api/'
-Classifier = Classifier.Classifier
+classifier = Classifier.Classifier
 
 @app.route('/')
 def hello_world():
@@ -20,7 +20,7 @@ def imageProcess():
     return jsonify_return_data(ret_data)
 
 def classify(image):
-    prediction = Classifier.classify(image)
+    prediction = classifier.classify(image)
     return prediction
 
 def jsonify_return_data(row):
