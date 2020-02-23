@@ -33,6 +33,6 @@ def jsonify_return_data(row):
 def main():
     app.run()
 
-if if __name__ == "__main__":
+if __name__ == "__main__":
     app.debug = False
     main()
