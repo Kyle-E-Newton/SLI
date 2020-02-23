@@ -13,12 +13,9 @@ CORS(app)
 
 
 base_url = '/api/'
-model = K.models.load_model('SLI_Model.h5')
+model = K.models.load_model('SLI_Model2.h5')
 
-path = 'asl-alphabet/'
-train_dir = path + 'train/'
-
-class_list = os.listdir(train_dir)
+class_list = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'nothing', 'O', 'P', 'Q', 'R', 'S', 'space', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
 print(class_list)
 
 def make_feature_extractor():
@@ -37,7 +34,6 @@ def hello_world():
 @app.route(base_url + 'image', methods=['POST'])
 def classify():             # i cry ery time
     d = request.get_json()
-    print(d["data"])
     decodeTxt = base64.b64decode(d["data"].split(',', 1)[1])
     with open('./img.jpg', 'wb') as f:
         f.write(decodeTxt)
