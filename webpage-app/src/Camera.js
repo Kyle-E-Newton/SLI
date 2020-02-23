@@ -2,7 +2,7 @@ import React from 'react';
 import Webcam from "react-webcam";
 import axios from 'axios';
 
-var url = "https://127.0.0.1:3000";
+var url = "http://127.0.0.1:5000";
 var val = 0;
 
 export default class WebcamCapture extends React.Component {
@@ -72,12 +72,11 @@ export default class WebcamCapture extends React.Component {
     }
 }
 
-async function makePostRequest(url, data) {
-    const response = await axios.post(
-        url,
-        {data}
-    );
-    return response;
+ function makePostRequest(url, data) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', url, false);
+    xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8')
+    xhr.send(JSON.stringify({"data": data}))
 }
 
 var displayValue = function(data) {
