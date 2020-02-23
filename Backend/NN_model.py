@@ -23,7 +23,7 @@ def make_model():
     model.add(K.layers.Dense(512, activation='relu', input_shape=(1280,)))
     model.add(K.layers.Dense(128, activation='relu'))
     model.add(K.layers.Dense(28, activation='softmax'))
-    model.compile(optimizer='rmsprop', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+    model.compile(optimizer='adadelta', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
     model.summary()
     return model
 
@@ -58,7 +58,7 @@ x_train, x_test, y_train, y_test = train_test_split(data_features, data_labels, 
 
 if __name__ == "__main__":
     model = make_model()
-    model.fit(x_train, y_train, epochs=4, batch_size=128, shuffle=True)
+    model.fit(x_train, y_train, epochs=80, batch_size=256, shuffle=True)
     print('Evaluation:')
     model.evaluate(x_test, y_test)
-    model.save('SLI_Model4.h5')
+    model.save('SLI_Model3.h5')
