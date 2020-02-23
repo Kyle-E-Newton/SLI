@@ -2,7 +2,7 @@ import React from 'react';
 import Webcam from "react-webcam";
 import axios from 'axios';
 
-var url = "127.0.0.1:3000";
+var url = "https://127.0.0.1:3000";
 var val = 0;
 
 export default class WebcamCapture extends React.Component {
