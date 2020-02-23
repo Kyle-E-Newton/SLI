@@ -2,12 +2,21 @@ import React from 'react'
 import Webcam from "react-webcam";
 
 export default class WebcamCapture extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            screenshot: null,
+            tab: 0
+        };
+    }
+    
     setRef = webcam => {
         this.webcam = webcam;
     };
       
     capture = () => {
-        const imageSrc = this.webcam.getScreenshot();
+        const screenshot = this.webcam.getScreenshot();
+        this.setState({ screenshot })
     };
       
     render() {
@@ -28,6 +37,7 @@ export default class WebcamCapture extends React.Component {
                 videoConstraints={videoConstraints}
                 />
             <button onClick={this.capture}>Capture photo</button>
+            {this.state.screenshot ? <img src ={this.state.screenshot} /> : null}
         </div>
         );
     }
