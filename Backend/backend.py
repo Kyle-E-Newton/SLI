@@ -26,11 +26,6 @@ def make_feature_extractor():
 
 feature_extractor = make_feature_extractor()
 
-@app.route('/')
-def hello_world():
-    return 'Hello World!'
-
-
 @app.route(base_url + 'image', methods=['POST'])
 def classify():             # i cry ery time
     d = request.get_json()
