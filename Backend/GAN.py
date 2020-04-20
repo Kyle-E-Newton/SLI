@@ -5,17 +5,29 @@ from sklearn.model_selection import train_test_split
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+import pandas as pd
 import os
 
 # Fetch MNIST Dataset using the supplied Tensorflow Utility Function
 #mnist = input_data.read_data_sets("data/MNIST_data/", one_hot=True)
-(x_train, y_train), (x_test, y_test) = mnist.load_data()
+path = 'sign-language-mnist/'
+train_dir = path + 'sign_mnist_train/sign_mnist_train.csv'
+test_dir = path + 'sign_mnist_test/sign_mnist_test.csv'
+
+train_data = pd.read_csv(train_dir).to_numpy()
+test_data = pd.read_csv(test_dir).to_numpy()
+train_labels, test_labels = train_data[:,0], test_data[:,0]
+train_data, test_data = train_data[:,1:] / 255., test_data[:,1:] / 255.
+
+train_data = np.expand_dims([i.reshape(28,28) for i in train_data], axis=-1)
+test_data = np.expand_dims([i.reshape(28,28) for i in test_data], axis=-1)
+(x_train, y_train), (x_test, y_test) = (train_data, train_labels), (test_data, test_labels)
 
 # The size of the noise vector
 NOISE_SIZE = 100
 HIDDEN_SIZE = 128
 IMAGE_SIZE = 28*28
-N_DIGITS = 10
+N_DIGITS = 25
 
 # The input vector of noise
 Z = tf.placeholder(tf.float32, shape=[None, NOISE_SIZE])
@@ -93,7 +105,7 @@ G_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=D_logit_f
 def one_hot_encode(x):
     result = []
     for val in x:
-        result.append([1 if i == val else 0 for i in range(10)])
+        result.append([1 if i == val else 0 for i in range(25)])
     return np.array(result)
 
 def sample_Z(m, n):
@@ -105,8 +117,8 @@ def sample_Z(m, n):
 def plot(samples):
     '''Plots a grid of 16 generated images.
     '''
-    fig = plt.figure(figsize=(4, 4))
-    gs = gridspec.GridSpec(4, 4)
+    fig = plt.figure(figsize=(5, 5))
+    gs = gridspec.GridSpec(5, 5)
     gs.update(wspace=0.05, hspace=0.05)
 
     for i, sample in enumerate(samples):
@@ -149,7 +161,7 @@ with tf.Session() as sess:
         # Get a batch of real MNIST images
         #X_batch, Y_batch = mnist.train.next_batch(BATCH_SIZE)
         _, X_batch, _, Y_batch = train_test_split(x_train, y_train, test_size=BATCH_SIZE)
-        X_batch = np.array([i.flatten() for i in X_batch]) / 255.
+        X_batch = np.array([i.flatten() for i in X_batch])
         Y_batch = one_hot_encode(Y_batch)
 
         # Run our optimizers
