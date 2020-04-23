@@ -1,187 +1,190 @@
-import tensorflow.compat.v1 as tf
-tf.disable_v2_behavior()
+from __future__ import print_function, division
+
 from tensorflow.keras.datasets import mnist
-from sklearn.model_selection import train_test_split
-import numpy as np
+from tensorflow.keras.layers import Input, Dense, Reshape, Flatten, Dropout, UpSampling2D, Conv2D
+from tensorflow.keras.layers import BatchNormalization, Activation, ZeroPadding2D, LeakyReLU
+#from tensorflow.keras.layers.advanced_activations import LeakyReLU
+#from tensorflow.keras.layers.convolutional import UpSampling2D, Conv2D
+from tensorflow.keras.models import Sequential, Model
+from tensorflow.keras.optimizers import Adam
+
+
 import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
+
+import sys
+
+import numpy as np
 import pandas as pd
-import os
 
-# Fetch MNIST Dataset using the supplied Tensorflow Utility Function
-#mnist = input_data.read_data_sets("data/MNIST_data/", one_hot=True)
-path = 'sign-language-mnist/'
-train_dir = path + 'sign_mnist_train/sign_mnist_train.csv'
-test_dir = path + 'sign_mnist_test/sign_mnist_test.csv'
+class DCGAN():
+    def __init__(self):
+        # Input shape
+        self.img_rows = 28
+        self.img_cols = 28
+        self.channels = 1
+        self.img_shape = (self.img_rows, self.img_cols, self.channels)
+        self.latent_dim = 100
 
-train_data = pd.read_csv(train_dir).to_numpy()
-test_data = pd.read_csv(test_dir).to_numpy()
-train_labels, test_labels = train_data[:,0], test_data[:,0]
-train_data, test_data = train_data[:,1:] / 255., test_data[:,1:] / 255.
+        optimizer = Adam(0.0002, 0.5)
 
-train_data = np.expand_dims([i.reshape(28,28) for i in train_data], axis=-1)
-test_data = np.expand_dims([i.reshape(28,28) for i in test_data], axis=-1)
-(x_train, y_train), (x_test, y_test) = (train_data, train_labels), (test_data, test_labels)
+        # Build and compile the discriminator
+        self.discriminator = self.build_discriminator()
+        self.discriminator.compile(loss='binary_crossentropy',
+            optimizer=optimizer,
+            metrics=['accuracy'])
 
-# The size of the noise vector
-NOISE_SIZE = 100
-HIDDEN_SIZE = 128
-IMAGE_SIZE = 28*28
-N_DIGITS = 25
+        # Build the generator
+        self.generator = self.build_generator()
 
-# The input vector of noise
-Z = tf.placeholder(tf.float32, shape=[None, NOISE_SIZE])
-Y = tf.placeholder(tf.float32, shape=[None, N_DIGITS])
-# 1st layer's weights and bias
-G_W1 = tf.get_variable('G_W1', shape=[NOISE_SIZE + N_DIGITS, HIDDEN_SIZE])
-G_b1 = tf.get_variable('G_b1', shape=[HIDDEN_SIZE])
+        # The generator takes noise as input and generates imgs
+        z = Input(shape=(self.latent_dim,))
+        img = self.generator(z)
 
-# 2nd layer's weights and bias
-G_W2 = tf.get_variable('G_W2', shape=[HIDDEN_SIZE, IMAGE_SIZE])
-G_b2 = tf.get_variable('G_b2', shape=[IMAGE_SIZE])
+        # For the combined model we will only train the generator
+        self.discriminator.trainable = False
 
-# The trainable generator variables
-theta_G = [G_W1, G_W2, G_b1, G_b2]
+        # The discriminator takes generated images as input and determines validity
+        valid = self.discriminator(img)
 
-def generator(z, y):
-    ''' The generator net.
-    '''
-    inputs = tf.concat(axis=1, values=[z, y])
-    G_h1 = tf.nn.relu(tf.matmul(inputs, G_W1) + G_b1)
-    G_log_prob = tf.matmul(G_h1, G_W2) + G_b2
-    G_prob = tf.nn.sigmoid(G_log_prob)
+        # The combined model  (stacked generator and discriminator)
+        # Trains the generator to fool the discriminator
+        self.combined = Model(z, valid)
+        self.combined.compile(loss='binary_crossentropy', optimizer=optimizer)
 
-    return G_prob
+    def build_generator(self):
 
-# The input image
-X = tf.placeholder(tf.float32, shape=[None, IMAGE_SIZE])
+        model = Sequential()
 
-# 1st layer's weights and bias
-D_W1 = tf.get_variable('D_W1', shape=[IMAGE_SIZE + N_DIGITS, HIDDEN_SIZE])
-D_b1 = tf.get_variable('D_b1', shape=[HIDDEN_SIZE])
+        model.add(Dense(128 * 7 * 7, activation="relu", input_dim=self.latent_dim))
+        model.add(Reshape((7, 7, 128)))
+        model.add(UpSampling2D())
+        model.add(Conv2D(128, kernel_size=3, padding="same"))
+        model.add(BatchNormalization(momentum=0.8))
+        model.add(Activation("relu"))
+        model.add(UpSampling2D())
+        model.add(Conv2D(64, kernel_size=3, padding="same"))
+        model.add(BatchNormalization(momentum=0.8))
+        model.add(Activation("relu"))
+        model.add(Conv2D(self.channels, kernel_size=3, padding="same"))
+        model.add(Activation("tanh"))
 
-# 2nd layer's weights and bias
-D_W2 = tf.get_variable('D_W2', shape=[HIDDEN_SIZE, 1])
-D_b2 = tf.get_variable('D_b2', shape=[1])
+        model.summary()
 
-# The trainable discriminator variables
-theta_D = [D_W1, D_W2, D_b1, D_b2]
+        noise = Input(shape=(self.latent_dim,))
+        img = model(noise)
 
-def discriminator(x, y):
-    '''The discriminator net.
-    '''
-    inputs = tf.concat(axis=1, values=[x, y])
-    D_h1 = tf.nn.relu(tf.matmul(inputs, D_W1) + D_b1)
-    D_logit = tf.matmul(D_h1, D_W2) + D_b2
-    D_prob = tf.nn.sigmoid(D_logit)
+        return Model(noise, img)
 
-    return D_prob, D_logit
+    def build_discriminator(self):
 
-# Image created by the generator
-G_sample = generator(Z, Y)
+        model = Sequential()
 
-# Descriminator's output for the real MNIST image
-D_real, D_logit_real = discriminator(X, Y)
-# Descriminator's output for the generated MNIST image
-D_fake, D_logit_fake = discriminator(G_sample, Y)
+        model.add(Conv2D(32, kernel_size=3, strides=2, input_shape=self.img_shape, padding="same"))
+        model.add(LeakyReLU(alpha=0.2))
+        model.add(Dropout(0.25))
+        model.add(Conv2D(64, kernel_size=3, strides=2, padding="same"))
+        model.add(ZeroPadding2D(padding=((0,1),(0,1))))
+        model.add(BatchNormalization(momentum=0.8))
+        model.add(LeakyReLU(alpha=0.2))
+        model.add(Dropout(0.25))
+        model.add(Conv2D(128, kernel_size=3, strides=2, padding="same"))
+        model.add(BatchNormalization(momentum=0.8))
+        model.add(LeakyReLU(alpha=0.2))
+        model.add(Dropout(0.25))
+        model.add(Conv2D(256, kernel_size=3, strides=1, padding="same"))
+        model.add(BatchNormalization(momentum=0.8))
+        model.add(LeakyReLU(alpha=0.2))
+        model.add(Dropout(0.25))
+        model.add(Flatten())
+        model.add(Dense(1, activation='sigmoid'))
 
-# Descriminator wants high probability for the real image
-D_loss_real = tf.reduce_mean(
-    tf.nn.sigmoid_cross_entropy_with_logits(
-        logits=D_logit_real,
-        labels=tf.ones_like(D_logit_real)))
-# Descriminator also wants low probability for the generated image
-D_loss_fake = tf.reduce_mean(
-    tf.nn.sigmoid_cross_entropy_with_logits(
-        logits=D_logit_fake,
-        labels=tf.zeros_like(D_logit_fake)))
-# We sum these to get our total descriminator loss
-D_loss = D_loss_real + D_loss_fake
+        model.summary()
 
-# Generator wants high probability for the generated image
-G_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=D_logit_fake,
-                                                                labels=tf.ones_like(D_logit_fake)))
+        img = Input(shape=self.img_shape)
+        validity = model(img)
 
-def one_hot_encode(x):
-    result = []
-    for val in x:
-        result.append([1 if i == val else 0 for i in range(25)])
-    return np.array(result)
+        return Model(img, validity)
 
-def sample_Z(m, n):
-    '''Returns a uniform sample of values between
-    -1 and 1 of size [m, n].
-    '''
-    return np.random.uniform(-1., 1., size=[m, n])
+    def train(self, epochs, batch_size=128, save_interval=50):
 
-def plot(samples):
-    '''Plots a grid of 16 generated images.
-    '''
-    fig = plt.figure(figsize=(5, 5))
-    gs = gridspec.GridSpec(5, 5)
-    gs.update(wspace=0.05, hspace=0.05)
+        # Load the dataset
+        (X_train, _), (_, _) = mnist.load_data()
+        '''
+        path = 'sign-language-mnist/'
+        train_dir = path + 'sign_mnist_train/sign_mnist_train.csv'
+        test_dir = path + 'sign_mnist_test/sign_mnist_test.csv'
+        
+        train_data = pd.read_csv(train_dir).to_numpy()
+        test_data = pd.read_csv(test_dir).to_numpy()
+        train_labels, test_labels = np.array(train_data[:,0]), np.array(test_data[:,0])
+        train_data, test_data = train_data[:,1:], test_data[:,1:]
 
-    for i, sample in enumerate(samples):
-        ax = plt.subplot(gs[i])
-        plt.axis('off')
-        ax.set_xticklabels([])
-        ax.set_yticklabels([])
-        ax.set_aspect('equal')
-        plt.imshow(sample.reshape(28, 28), cmap='Greys_r')
+        train_data = np.array([i.reshape(28,28) for i in train_data])
+        test_data = np.array([i.reshape(28,28) for i in test_data])
+        (X_train, y_train), (x_test, y_test) = (train_data, train_labels), (test_data, test_labels)
+        '''
 
-    return fig
+        # Rescale -1 to 1
+        X_train = X_train / 127.5 - 1.
+        X_train = np.expand_dims(X_train, axis=3)
 
-# The optimizer for each net
-D_optimizer = tf.train.AdamOptimizer().minimize(D_loss, var_list=theta_D)
-G_optimizer = tf.train.AdamOptimizer().minimize(G_loss, var_list=theta_G)
 
-BATCH_SIZE = 128
+        # Adversarial ground truths
+        valid = np.ones((batch_size, 1))
+        fake = np.zeros((batch_size, 1))
 
-image_input = np.identity(N_DIGITS)
+        for epoch in range(epochs):
 
-with tf.Session() as sess:
-    sess.run(tf.global_variables_initializer())
+            # ---------------------
+            #  Train Discriminator
+            # ---------------------
 
-    # Image counter
-    i = 0
-    #sample_arr = []
-    for it in range(1000000):
-        # Save out image of 16 generated digits
-        if it % 1000 == 0:
-            samples = sess.run(G_sample,
-                               feed_dict={
-                                   Z: sample_Z(N_DIGITS, NOISE_SIZE),
-                                   Y: image_input
-                               })
-            fig = plot(samples)
-            #plt.show()
-            fig.savefig('output/'+'output_'+str(int(it/1000))+'.png')
-            plt.close()
+            # Select a random half of images
+            idx = np.random.randint(0, X_train.shape[0], batch_size)
+            imgs = X_train[idx]
 
-        # Get a batch of real MNIST images
-        #X_batch, Y_batch = mnist.train.next_batch(BATCH_SIZE)
-        _, X_batch, _, Y_batch = train_test_split(x_train, y_train, test_size=BATCH_SIZE)
-        X_batch = np.array([i.flatten() for i in X_batch])
-        Y_batch = one_hot_encode(Y_batch)
+            # Sample noise and generate a batch of new images
+            noise = np.random.normal(0, 1, (batch_size, self.latent_dim))
+            gen_imgs = self.generator.predict(noise)
 
-        # Run our optimizers
-        _, D_loss_curr = sess.run([D_optimizer, D_loss],
-                                  feed_dict={
-                                      X: X_batch,
-                                      Z: sample_Z(BATCH_SIZE, NOISE_SIZE),
-                                      Y: Y_batch
-                                  })
-        _, G_loss_curr = sess.run([G_optimizer, G_loss],
-                                  feed_dict={
-                                      Z: sample_Z(BATCH_SIZE, NOISE_SIZE),
-                                      Y: Y_batch
-                                  })
+            # Train the discriminator (real classified as ones and generated as zeros)
+            d_loss_real = self.discriminator.train_on_batch(imgs, valid)
+            d_loss_fake = self.discriminator.train_on_batch(gen_imgs, fake)
+            d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
 
-        # Report loss
-        if it % 1000 == 0:
-            print('Iter: {}'.format(it))
-            print('D loss: {:.4}'. format(D_loss_curr))
-            print('G_loss: {:.4}'.format(G_loss_curr))
-            print()
+            # ---------------------
+            #  Train Generator
+            # ---------------------
 
-    #plt.show()
+            # Train the generator (wants discriminator to mistake images as real)
+            g_loss = self.combined.train_on_batch(noise, valid)
+
+            # Plot the progress
+            print ("%d [D loss: %f, acc.: %.2f%%] [G loss: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss))
+
+            # If at save interval => save generated image samples
+            if epoch % save_interval == 0:
+                self.save_imgs(epoch)
+
+    def save_imgs(self, epoch):
+        r, c = 5, 5
+        noise = np.random.normal(0, 1, (r * c, self.latent_dim))
+        gen_imgs = self.generator.predict(noise)
+
+        # Rescale images 0 - 1
+        gen_imgs = 0.5 * gen_imgs + 0.5
+
+        fig, axs = plt.subplots(r, c)
+        cnt = 0
+        for i in range(r):
+            for j in range(c):
+                axs[i,j].imshow(gen_imgs[cnt, :,:,0], cmap='gray')
+                axs[i,j].axis('off')
+                cnt += 1
+        fig.savefig("output/mnist_%d.png" % epoch)
+        plt.close()
+
+
+if __name__ == '__main__':
+    dcgan = DCGAN()
+    dcgan.train(epochs=40000, batch_size=64, save_interval=100)
