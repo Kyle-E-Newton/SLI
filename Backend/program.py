@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import random
 from PIL import Image
+from collections import Counter
 
 generator = tf.keras.models.load_model('generator.h5')
 
@@ -33,14 +34,7 @@ def generate_data(batch_size=1000, latent_dim=256):
 
     return generator.predict([noise, sampled_labels]), sampled_labels
 
-def make_feature_extractor():
-    feature_extractor = MobileNetV2(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
-    last_layer = K.layers.GlobalAveragePooling2D()(feature_extractor.output)
-    convolutional_base = K.models.Model(feature_extractor.input, last_layer)
-    return convolutional_base
-
 def test_models():
-    feature_extractor = make_feature_extractor()
     for model in models:
         x_train, y_train = generate_data()
         model.fit(x_train, y_train)
@@ -50,24 +44,27 @@ def test_models():
         model.evaluate(x_test, y_test)
 
 def test_ensemble():
-    feature_extractor = make_feature_extractor()
     for model in models:
         x_train, y_train = generate_data()
         model.fit(x_train, y_train)
         
-
-def classify(model):
-    feature_extractor = make_feature_extractor()
-    return class_list[np.argmax(model.predict(feature_extractor.predict(np.expand_dims(np.asarray(Image.open("./img.jpg").resize((224,224))) / 255., axis=0))))] # absolute beauty #
-
 def classify_ensemble():
     predictions = list()
+    images = generate_data(1000)[0]
     for model in models:
-        predictions.append(classify(model))
+        predictions.append(model.predict(images))
+    
+    preds = list()
+    for p in predictions:
+        preds.append(np.argmax(p))
 
-    common, num_common = Counter(predictions).most_common(1)[0]
-    return most
+    print(preds)
+    
+
+
+    common, num_common = Counter(preds).most_common(1)[0]
+    return common
 
 
 if __name__ == "__main__":
-    classify_ensemble()
+    print(classify_ensemble())
