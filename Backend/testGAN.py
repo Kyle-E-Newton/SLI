@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import tensorflow.keras as K
 import numpy as np
 import pandas as pd
+import random
 
 def make_model():
     model = K.models.Sequential()
@@ -37,9 +38,9 @@ if __name__ == "__main__":
 
     for model in models:
         x_train, y_train = generate_data(10000)
-        model.fit(x_train, y_train, epochs=2)
+        model.fit(x_train, y_train, epochs=random.randint(1,11))
 
     for i, model in enumerate(models):
         x_test, y_tset = generate_data(batch_size=100)
         model.evaluate(x_train, y_train)
-        model.save('classifier{}.h5'.format(i))
+        model.save('model{}.h5'.format(i))
