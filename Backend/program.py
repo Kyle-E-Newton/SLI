@@ -62,5 +62,26 @@ def classify_ensemble():
     common, num_common = Counter(predictions).most_common(1)[0]
     return most
 
+def make_model():
+    model = K.models.Sequential()
+    model.add(K.layers.Dense(512, activation='relu', input_shape=(1280,)))
+    model.add(K.layers.Dense(128, activation='relu'))
+    model.add(K.layers.Dense(28, activation='softmax'))
+    model.compile(optimizer='adadelta', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+    model.summary()
+    return model
+
+def create_model(name):
+    model = make_model()
+    x_train, y_train = generate_data()
+    model.fit(x_train, y_train, epochs=80, batch_size=256, shuffle=True)
+    model.save(name)
+
+def generate_models():
+    names = ['model1.h5', 'model2.h5', 'model3.h5', 'model4.h5', 'model5.h5', 'model6.h5']
+    for name in names:
+        create_model(name)
+
+
 if __name__ == "__main__":
-    print(classify_ensemble)
+    generate_models()

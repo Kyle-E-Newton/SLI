@@ -240,7 +240,7 @@ class ACGAN():
 
 if __name__ == '__main__':
     acgan = ACGAN()
-    acgan.train(epochs=1000, batch_size=128, sample_interval=1000)
+    acgan.train(epochs=7500, batch_size=128, sample_interval=1000)
 
     h = np.array(acgan.history)
     plt.plot(h[:,0], h[:,1])
