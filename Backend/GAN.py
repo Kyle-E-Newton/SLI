@@ -1,5 +1,6 @@
 from __future__ import print_function, division
 
+import tensorflow as tf
 from tensorflow.keras.datasets import mnist
 from tensorflow.keras.layers import Input, Dense, Reshape, Flatten, Dropout, UpSampling2D, Conv2D, Embedding, multiply, MaxPooling2D
 from tensorflow.keras.layers import BatchNormalization, Activation, ZeroPadding2D, LeakyReLU
@@ -233,17 +234,8 @@ class ACGAN():
 
     def save_model(self):
 
-        def save(model, model_name):
-            model_path = "saved_model/%s.json" % model_name
-            weights_path = "saved_model/%s_weights.hdf5" % model_name
-            options = {"file_arch": model_path,
-                        "file_weight": weights_path}
-            json_string = model.to_json()
-            open(options['file_arch'], 'w').write(json_string)
-            model.save_weights(options['file_weight'])
-
-        save(self.generator, "generator")
-        save(self.discriminator, "discriminator")
+        self.generator.save('generator.h5')
+        self.discriminator.save("discriminator.h5")
 
 
 if __name__ == '__main__':
