@@ -34,11 +34,11 @@ def generate_data(batch_size=1000, latent_dim=256):
 
 if __name__ == "__main__":
     
-    models = [make_model() for _ in range(10)]    # list of classifiers
+    models = [make_model() for _ in range(16)]    # list of classifiers
 
     for model in models:
-        x_train, y_train = generate_data(10000)
-        model.fit(x_train, y_train, epochs=random.randint(1,11))
+        x_train, y_train = generate_data(100000)
+        model.fit(x_train, y_train, epochs=random.randint(1,8))
 
     for i, model in enumerate(models):
         x_test, y_tset = generate_data(batch_size=100)

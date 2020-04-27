@@ -22,9 +22,14 @@ model6 = tf.keras.models.load_model('model6.h5')
 model7 = tf.keras.models.load_model('model7.h5')
 model8 = tf.keras.models.load_model('model8.h5')
 model9 = tf.keras.models.load_model('model9.h5')
+model10 = tf.keras.models.load_model('model10.h5')
+model11 = tf.keras.models.load_model('model11.h5')
+model12 = tf.keras.models.load_model('model12.h5')
+model13 = tf.keras.models.load_model('model13.h5')
+model14 = tf.keras.models.load_model('model14.h5')
+model15 = tf.keras.models.load_model('model15.h5')
 
 models = [model0, model1, model2, model3, model4, model5, model6, model7, model8, model9]
-class_list = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'nothing', 'O', 'P', 'Q', 'R', 'S', 'space', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
 
 
 def generate_data(batch_size=1000, latent_dim=256):
@@ -50,21 +55,32 @@ def test_ensemble():
         
 def classify_ensemble():
     predictions = list()
-    images = generate_data(1000)[0]
+    images = generate_data(100)
     for model in models:
-        predictions.append(model.predict(images))
-    
+        model_predictions = model.predict(images[0])
+        model_predictions = [np.argmax(i) for i in model_predictions]
+        predictions.append(model_predictions)
+
     preds = list()
-    for p in predictions:
-        preds.append(np.argmax(p))
+    final = list()
+    for i in range(0, len(predictions[0])):
+        for j in range(0, len(predictions)):
+            preds.append(predictions[j][i])
+        most, num = Counter(preds).most_common(1)[0]
+        final.append(most)
+        preds = list()
+    real = np.array(images[1]).ravel()
 
-    print(preds)
-    
-
-
-    common, num_common = Counter(preds).most_common(1)[0]
-    return common
-
+    return real, final
 
 if __name__ == "__main__":
-    print(classify_ensemble())
+    real, pred = classify_ensemble()
+    correct = 0
+    incorrect = 0
+    for i in range(0, len(pred)):
+        if real[i] == pred[i]:
+            correct += 1
+        else:
+            incorrect += 1
+        
+    print("Accuracy: ", (correct / (incorrect+correct)))
