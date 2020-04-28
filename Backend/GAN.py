@@ -1,55 +1,58 @@
 from __future__ import print_function, division
 
+import tensorflow as tf
 from tensorflow.keras.datasets import mnist
-from tensorflow.keras.layers import Input, Dense, Reshape, Flatten, Dropout, UpSampling2D, Conv2D
+from tensorflow.keras.layers import Input, Dense, Reshape, Flatten, Dropout, UpSampling2D, Conv2D, Embedding, multiply, MaxPooling2D
 from tensorflow.keras.layers import BatchNormalization, Activation, ZeroPadding2D, LeakyReLU
-#from tensorflow.keras.layers.advanced_activations import LeakyReLU
-#from tensorflow.keras.layers.convolutional import UpSampling2D, Conv2D
 from tensorflow.keras.models import Sequential, Model
 from tensorflow.keras.optimizers import Adam
 
-
 import matplotlib.pyplot as plt
-
-import sys
 
 import numpy as np
 import pandas as pd
 
-class DCGAN():
+class ACGAN():
     def __init__(self):
         # Input shape
         self.img_rows = 28
         self.img_cols = 28
         self.channels = 1
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
-        self.latent_dim = 100
+        self.num_classes = 24
+        self.latent_dim = 256
+        self.history = list()
 
         optimizer = Adam(0.0002, 0.5)
+        losses = ['binary_crossentropy', 'sparse_categorical_crossentropy']
 
         # Build and compile the discriminator
         self.discriminator = self.build_discriminator()
-        self.discriminator.compile(loss='binary_crossentropy',
+        self.discriminator.compile(loss=losses,
             optimizer=optimizer,
             metrics=['accuracy'])
 
         # Build the generator
         self.generator = self.build_generator()
 
-        # The generator takes noise as input and generates imgs
-        z = Input(shape=(self.latent_dim,))
-        img = self.generator(z)
+        # The generator takes noise and the target label as input
+        # and generates the corresponding digit of that label
+        noise = Input(shape=(self.latent_dim,))
+        label = Input(shape=(1,))
+        img = self.generator([noise, label])
 
         # For the combined model we will only train the generator
         self.discriminator.trainable = False
 
-        # The discriminator takes generated images as input and determines validity
-        valid = self.discriminator(img)
+        # The discriminator takes generated image as input and determines validity
+        # and the label of that image
+        valid, target_label = self.discriminator(img)
 
         # The combined model  (stacked generator and discriminator)
         # Trains the generator to fool the discriminator
-        self.combined = Model(z, valid)
-        self.combined.compile(loss='binary_crossentropy', optimizer=optimizer)
+        self.combined = Model([noise, label], [valid, target_label])
+        self.combined.compile(loss=losses,
+            optimizer=optimizer)
 
     def build_generator(self):
 
@@ -57,63 +60,66 @@ class DCGAN():
 
         model.add(Dense(128 * 7 * 7, activation="relu", input_dim=self.latent_dim))
         model.add(Reshape((7, 7, 128)))
+        model.add(BatchNormalization(momentum=0.8))
         model.add(UpSampling2D())
         model.add(Conv2D(128, kernel_size=3, padding="same"))
-        model.add(BatchNormalization(momentum=0.8))
         model.add(Activation("relu"))
+        model.add(BatchNormalization(momentum=0.8))
         model.add(UpSampling2D())
         model.add(Conv2D(64, kernel_size=3, padding="same"))
-        model.add(BatchNormalization(momentum=0.8))
         model.add(Activation("relu"))
-        model.add(Conv2D(self.channels, kernel_size=3, padding="same"))
+        model.add(BatchNormalization(momentum=0.8))
+        model.add(Conv2D(self.channels, kernel_size=3, padding='same'))
         model.add(Activation("tanh"))
 
         model.summary()
 
         noise = Input(shape=(self.latent_dim,))
-        img = model(noise)
+        label = Input(shape=(1,), dtype='int32')
+        label_embedding = Flatten()(Embedding(self.num_classes, self.latent_dim)(label))
 
-        return Model(noise, img)
+        model_input = multiply([noise, label_embedding])
+        img = model(model_input)
+
+        return Model([noise, label], img)
 
     def build_discriminator(self):
 
         model = Sequential()
-
-        model.add(Conv2D(32, kernel_size=3, strides=2, input_shape=self.img_shape, padding="same"))
+        model.add(Conv2D(128, kernel_size=5, input_shape=self.img_shape, padding="same"))
         model.add(LeakyReLU(alpha=0.2))
+        model.add(MaxPooling2D())
+        model.add(Conv2D(256, kernel_size=3, padding="same"))
+        model.add(LeakyReLU(alpha=0.2))
+        model.add(MaxPooling2D())
         model.add(Dropout(0.25))
-        model.add(Conv2D(64, kernel_size=3, strides=2, padding="same"))
-        model.add(ZeroPadding2D(padding=((0,1),(0,1))))
-        model.add(BatchNormalization(momentum=0.8))
+        model.add(Conv2D(256, kernel_size=3, padding="same"))
         model.add(LeakyReLU(alpha=0.2))
-        model.add(Dropout(0.25))
-        model.add(Conv2D(128, kernel_size=3, strides=2, padding="same"))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(Dropout(0.25))
-        model.add(Conv2D(256, kernel_size=3, strides=1, padding="same"))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(LeakyReLU(alpha=0.2))
+        model.add(MaxPooling2D())
         model.add(Dropout(0.25))
         model.add(Flatten())
-        model.add(Dense(1, activation='sigmoid'))
-
         model.summary()
 
+
         img = Input(shape=self.img_shape)
-        validity = model(img)
 
-        return Model(img, validity)
+        # Extract feature representation
+        features = model(img)
 
-    def train(self, epochs, batch_size=128, save_interval=50):
+        # Determine validity and label of the image
+        validity = Dense(1, activation="sigmoid")(features)
+        label = Dense(self.num_classes, activation="softmax")(features)
+
+        return Model(img, [validity, label])
+
+    def train(self, epochs, batch_size=128, sample_interval=50):
 
         # Load the dataset
-        (X_train, _), (_, _) = mnist.load_data()
-        '''
+        #'''
         path = 'sign-language-mnist/'
         train_dir = path + 'sign_mnist_train/sign_mnist_train.csv'
         test_dir = path + 'sign_mnist_test/sign_mnist_test.csv'
-        
+
         train_data = pd.read_csv(train_dir).to_numpy()
         test_data = pd.read_csv(test_dir).to_numpy()
         train_labels, test_labels = np.array(train_data[:,0]), np.array(test_data[:,0])
@@ -121,13 +127,19 @@ class DCGAN():
 
         train_data = np.array([i.reshape(28,28) for i in train_data])
         test_data = np.array([i.reshape(28,28) for i in test_data])
-        (X_train, y_train), (x_test, y_test) = (train_data, train_labels), (test_data, test_labels)
-        '''
+        print(train_data.shape, test_data.shape)
+        print(train_labels.shape, test_labels.shape)
+        X_train, Y_train = train_data, train_labels
+        #X_train = np.append(train_data, test_data[:], axis=0)
+        #Y_train = np.append(train_labels, test_labels[:], axis=0)
+        print(X_train.shape)
+        print(Y_train.shape)
+        #'''
 
-        # Rescale -1 to 1
-        X_train = X_train / 127.5 - 1.
+        # Configure inputs
+        X_train = (X_train.astype(np.float32) - 127.5) / 127.5
         X_train = np.expand_dims(X_train, axis=3)
-
+        y_train = y_train.reshape(-1, 1)
 
         # Adversarial ground truths
         valid = np.ones((batch_size, 1))
@@ -139,52 +151,95 @@ class DCGAN():
             #  Train Discriminator
             # ---------------------
 
-            # Select a random half of images
+            # Select a random batch of images
             idx = np.random.randint(0, X_train.shape[0], batch_size)
             imgs = X_train[idx]
 
-            # Sample noise and generate a batch of new images
+            # Sample noise as generator input
             noise = np.random.normal(0, 1, (batch_size, self.latent_dim))
-            gen_imgs = self.generator.predict(noise)
 
-            # Train the discriminator (real classified as ones and generated as zeros)
-            d_loss_real = self.discriminator.train_on_batch(imgs, valid)
-            d_loss_fake = self.discriminator.train_on_batch(gen_imgs, fake)
+            # The labels of the digits that the generator tries to create an
+            # image representation of
+            sampled_labels = np.random.randint(0, 24, (batch_size, 1))
+
+            # Generate a half batch of new images
+            gen_imgs = self.generator.predict([noise, sampled_labels])
+
+            # Image labels. 0-9 
+            img_labels = y_train[idx]
+
+            # Train the discriminator
+            d_loss_real = self.discriminator.train_on_batch(imgs, [valid, img_labels])
+            d_loss_fake = self.discriminator.train_on_batch(gen_imgs, [fake, sampled_labels])
             d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
 
             # ---------------------
             #  Train Generator
             # ---------------------
 
-            # Train the generator (wants discriminator to mistake images as real)
-            g_loss = self.combined.train_on_batch(noise, valid)
+            # Train the generator
+            g_loss = self.combined.train_on_batch([noise, sampled_labels], [valid, sampled_labels])
 
             # Plot the progress
-            print ("%d [D loss: %f, acc.: %.2f%%] [G loss: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss))
+            if epoch % 5 == 0:
+                print ("%d [D loss: %f, acc.: %.2f%%, op_acc: %.2f%%] [G loss: %f]" % (epoch, d_loss[0], 100*d_loss[3], 100*d_loss[4], g_loss[0]))
 
             # If at save interval => save generated image samples
-            if epoch % save_interval == 0:
-                self.save_imgs(epoch)
+            if epoch % sample_interval == 0:
+                self.save_model()
+                self.sample_images(epoch)
+                self.history.append((epoch, d_loss[0], 100*d_loss[3], 100*d_loss[4], g_loss[0]))
 
-    def save_imgs(self, epoch):
-        r, c = 5, 5
+    def sample_images(self, epoch):
+        r, c = 5, 24
         noise = np.random.normal(0, 1, (r * c, self.latent_dim))
-        gen_imgs = self.generator.predict(noise)
-
+        sampled_labels = np.array([num for _ in range(r) for num in range(c)])
+        gen_imgs = self.generator.predict([noise, sampled_labels])
         # Rescale images 0 - 1
         gen_imgs = 0.5 * gen_imgs + 0.5
 
-        fig, axs = plt.subplots(r, c)
+        fig, axs = plt.subplots(r, c, figsize=(24,10))
         cnt = 0
         for i in range(r):
             for j in range(c):
-                axs[i,j].imshow(gen_imgs[cnt, :,:,0], cmap='gray')
+                axs[i,j].imshow(gen_imgs[cnt,:,:,0], cmap='gray')
                 axs[i,j].axis('off')
                 cnt += 1
-        fig.savefig("output/mnist_%d.png" % epoch)
+        fig.savefig("images/%d.png" % epoch)
         plt.close()
+
+    def save_model(self):
+
+        self.generator.save('generator.h5')
+        self.discriminator.save("discriminator.h5")
 
 
 if __name__ == '__main__':
-    dcgan = DCGAN()
-    dcgan.train(epochs=40000, batch_size=64, save_interval=100)
+    acgan = ACGAN()
+    acgan.train(epochs=7500, batch_size=128, sample_interval=1000)
+
+    h = np.array(acgan.history)
+    plt.plot(h[:,0], h[:,1])
+    plt.xlabel(xlabel='epochs')
+    plt.ylabel('loss')
+    plt.title('Discriminator loss')
+    plt.savefig('Discriminator_Loss.png')
+    plt.show()
+    plt.plot(h[:,0], h[:,2])
+    plt.xlabel('epochs')
+    plt.ylabel('accuracy')
+    plt.title('Discriminator accuracy')
+    plt.savefig('Discriminator_Accuracy.png')
+    plt.show()
+    plt.plot(h[:,0], h[:,3])
+    plt.xlabel('epochs')
+    plt.ylabel('accuracy')
+    plt.title('Classification accuracy')
+    plt.savefig('Classification_Accuracy.png')
+    plt.show()
+    plt.plot(h[:,0], h[:,4])
+    plt.xlabel('epochs')
+    plt.ylabel('loss')
+    plt.title('Generator loss')
+    plt.savefig('Generator_Loss.png')
+    plt.show()
