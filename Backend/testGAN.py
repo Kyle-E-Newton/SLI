@@ -41,6 +41,6 @@ if __name__ == "__main__":
         model.fit(x_train, y_train, epochs=random.randint(1,8))
 
     for i, model in enumerate(models):
-        x_test, y_tset = generate_data(batch_size=100)
-        model.evaluate(x_train, y_train)
+        x_test, y_test = generate_data(batch_size=100)
+        model.evaluate(x_test, y_test)
         model.save('model{}.h5'.format(i))
