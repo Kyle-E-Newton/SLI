@@ -19,7 +19,7 @@ class ACGAN():
         self.img_cols = 28
         self.channels = 1
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
-        self.num_classes = 24
+        self.num_classes = 25
         self.latent_dim = 256
         self.history = list()
 
@@ -139,7 +139,7 @@ class ACGAN():
         # Configure inputs
         X_train = (X_train.astype(np.float32) - 127.5) / 127.5
         X_train = np.expand_dims(X_train, axis=3)
-        y_train = y_train.reshape(-1, 1)
+        y_train = Y_train
 
         # Adversarial ground truths
         valid = np.ones((batch_size, 1))
@@ -216,7 +216,7 @@ class ACGAN():
 
 if __name__ == '__main__':
     acgan = ACGAN()
-    acgan.train(epochs=7500, batch_size=128, sample_interval=1000)
+    acgan.train(epochs=10000, batch_size=128, sample_interval=1000)
 
     h = np.array(acgan.history)
     plt.plot(h[:,0], h[:,1])

@@ -57,6 +57,8 @@ if __name__ == "__main__":
     real, pred = classify_ensemble()
     correct = 0
     incorrect = 0
+    print(real)
+    print(pred)
     for i in range(0, len(pred)):
         if real[i] == pred[i]:
             correct += 1
@@ -64,3 +66,4 @@ if __name__ == "__main__":
             incorrect += 1
         
     print("Accuracy: ", (correct / (incorrect+correct)))
+    #print(tf.math.confusion_matrix(real, pred, num_classes=25))
